@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard Valência · Halwa AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prop-types@15.8.1/prop-types.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/recharts@2.12.7/umd/Recharts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.7/babel.min.js"></script>
+<style>
+  html, body { margin: 0; background: #0D1F12; }
+  #root, #root * { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif; }
+  .font-sora { font-family: 'Sora', 'Inter', sans-serif; }
+  ::-webkit-scrollbar { height: 8px; width: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,247,237,0.15); border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo } = React;
+const { ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+        XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } = Recharts;
+
+/* ===== Ícones (SVG inline — sem dependência externa) ===== */
+const ICONS = {
+  LayoutDashboard: '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
+  TrendingUp: '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+  Megaphone: '<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+  Truck: '<path d="M14 18V6a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h1"/><path d="M14 9h4l4 4v4a1 1 0 0 1-1 1h-1"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><path d="M9 18h6"/>',
+  MessageSquare: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  Target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  Wallet: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16" cy="14" r="1.3"/>',
+  Receipt: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/>',
+  Users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  UserPlus: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>',
+  UserMinus: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" y1="11" x2="16" y2="11"/>',
+  RefreshCw: '<path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M8 16H3v5"/>',
+  Building2: '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/>',
+  ArrowUpRight: '<line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/>',
+  ArrowDownRight: '<line x1="7" y1="7" x2="17" y2="17"/><polyline points="17 7 17 17 7 17"/>',
+  Minus: '<line x1="5" y1="12" x2="19" y2="12"/>',
+  ChevronDown: '<polyline points="6 9 12 15 18 9"/>',
+  Sparkles: '<path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/><path d="M19 14l.7 1.9L22 17l-2.3.7L19 20l-.7-2.3L16 17l2.3-.8z"/>',
+  Fuel: '<line x1="3" y1="22" x2="15" y2="22"/><line x1="4" y1="9" x2="14" y2="9"/><path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"/><path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 4 0V9.83a2 2 0 0 0-.59-1.42L18 5"/>',
+};
+function Icon({ name, size = 16, color = "currentColor", strokeWidth = 2, style, className }) {
+  return React.createElement("svg", {
+    xmlns: "http://www.w3.org/2000/svg", width: size, height: size, viewBox: "0 0 24 24",
+    fill: "none", stroke: color, strokeWidth, strokeLinecap: "round", strokeLinejoin: "round",
+    style, className, dangerouslySetInnerHTML: { __html: ICONS[name] || "" },
+  });
+}
+
+/* ===== CONFIG DO CLIENTE (embrião do config/tenant.ts — multi-tenant) ===== */
+const TENANT = {
+  nome: "Transportadora Valência", sigla: "TV", poweredBy: "Halwa AI",
+  cores: {
+    bg: "#0D1F12", surface: "#14291B", surfaceAlt: "#1B3524",
+    border: "rgba(255, 247, 237, 0.08)", borderStrong: "rgba(255, 247, 237, 0.16)",
+    text: "#FFF7ED", textDim: "rgba(255, 247, 237, 0.60)", textFaint: "rgba(255, 247, 237, 0.38)",
+    laranja: "#F97316", verde: "#1A9E4A", neon: "#4ADE80", alerta: "#F87171", ambar: "#FBBF24",
+  },
+};
+const C = TENANT.cores;
+const SERIE = [C.laranja, C.neon, C.verde, "#2DD4BF", C.ambar];
+
+/* ===== DADOS FICTÍCIOS (espelham as tabelas do PostgreSQL) ===== */
+const MENSAL = [
+  { mes: "Fev", valor: 1188000 }, { mes: "Mar", valor: 1224000 }, { mes: "Abr", valor: 1247000 },
+  { mes: "Mai", valor: 1276000 }, { mes: "Jun", valor: 1312000 }, { mes: "Jul", valor: 1298000 },
+  { mes: "Ago", valor: 1372000 }, { mes: "Set", valor: 1429000 },
+];
+const META_MES = 1450000;
+const VENDEDORES = [
+  { nome: "Marcos Aurélio", filial: "Guarulhos", meta: 205000, realizado: 218000, ant: 201000 },
+  { nome: "Patrícia Nunes", filial: "Guarulhos", meta: 195000, realizado: 176000, ant: 188000 },
+  { nome: "Diego Ramos", filial: "Guarulhos", meta: 190000, realizado: 199000, ant: 179000 },
+  { nome: "Clayton", filial: "Londrina", meta: 180000, realizado: 191000, ant: 174000 },
+  { nome: "Rinaldo", filial: "Londrina", meta: 175000, realizado: 168000, ant: 170000 },
+  { nome: "Felipe", filial: "Londrina", meta: 165000, realizado: 152000, ant: 158000 },
+  { nome: "Bruna", filial: "Maringá", meta: 170000, realizado: 184000, ant: 172000 },
+  { nome: "Tatiane Alves", filial: "Maringá", meta: 150000, realizado: 141000, ant: 149000 },
+];
+const FILIAIS = ["Guarulhos", "Londrina", "Maringá"];
+const TOTAL_COMPETENCIA = { "Setembro 2026": 1429000, "Agosto 2026": 1372000, "Julho 2026": 1298000 };
+const COMP_TO_MES = { "Setembro 2026": "Set", "Agosto 2026": "Ago", "Julho 2026": "Jul" };
+const KPIS = {
+  "Setembro 2026": { ticket: 1842, ticketD: 2.1, ativos: 3214, ativosD: 46, leads: 342, leadsD: 8.6, conv: 18.4, convD: 1.2, cpl: 41.70, cplD: -6.3, inativos: 486, inativosD: 12, novos: 63, reativados: 18, tresp: 38, trespD: -11.6 },
+  "Agosto 2026": { ticket: 1804, ticketD: 1.4, ativos: 3168, ativosD: 38, leads: 315, leadsD: 5.2, conv: 17.2, convD: 0.6, cpl: 44.50, cplD: -2.1, inativos: 474, inativosD: 9, novos: 57, reativados: 15, tresp: 43, trespD: -8.5 },
+  "Julho 2026": { ticket: 1789, ticketD: -0.8, ativos: 3130, ativosD: 21, leads: 299, leadsD: -3.1, conv: 16.6, convD: -0.4, cpl: 45.40, cplD: 3.4, inativos: 465, inativosD: 14, novos: 49, reativados: 11, tresp: 47, trespD: 4.4 },
+};
+
+/* ===== DADOS DE LEADS (tabela atribuicoes) ===== */
+const LEADS_VENDEDOR = [
+  { nome: "Clayton", filial: "Londrina", leads: 71 },
+  { nome: "Rinaldo", filial: "Londrina", leads: 68 },
+  { nome: "Felipe", filial: "Londrina", leads: 68 },
+  { nome: "Bruna", filial: "Maringá", leads: 135 },
+];
+const LEADS_DDD = [
+  { name: "DDD 43 · Londrina", value: 156 },
+  { name: "DDD 44 · Maringá", value: 118 },
+  { name: "Outros DDDs", value: 68 },
+];
+const LEADS_MENSAL = [
+  { mes: "Fev", leads: 268 }, { mes: "Mar", leads: 279 }, { mes: "Abr", leads: 291 },
+  { mes: "Mai", leads: 305 }, { mes: "Jun", leads: 318 }, { mes: "Jul", leads: 299 },
+  { mes: "Ago", leads: 315 }, { mes: "Set", leads: 342 },
+];
+
+/* ===== HELPERS ===== */
+const fmtBRL = (v) => "R$ " + Math.round(v).toLocaleString("pt-BR");
+const fmtMi = (v) => "R$ " + (v / 1e6).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " mi";
+const fmtMil = (v) => "R$ " + Math.round(v / 1000).toLocaleString("pt-BR") + " mil";
+const axisMoney = (v) => "R$ " + (v / 1e6).toFixed(1).replace(".", ",") + "M";
+const pct = (v) => v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+
+function useCountUp(target, deps) {
+  const [n, setN] = useState(target);
+  useEffect(() => {
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) { setN(target); return; }
+    let raf; const start = performance.now(); const dur = 800;
+    const tick = (t) => {
+      const p = Math.min(1, (t - start) / dur);
+      setN(target * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, deps);
+  return n;
+}
+function useCompetencia(competencia) {
+  return useMemo(() => {
+    const total = TOTAL_COMPETENCIA[competencia];
+    const escala = total / TOTAL_COMPETENCIA["Setembro 2026"];
+    const vend = VENDEDORES.map((v) => ({
+      ...v,
+      realizado: Math.round((v.realizado * escala) / 1000) * 1000,
+      ant: Math.round((v.ant * escala) / 1000) * 1000,
+    }));
+    const porFilial = FILIAIS.map((f) => ({
+      name: f, value: vend.filter((v) => v.filial === f).reduce((s, v) => s + v.realizado, 0),
+    }));
+    const mesAtual = COMP_TO_MES[competencia];
+    const idx = MENSAL.findIndex((m) => m.mes === mesAtual);
+    const deltaPct = idx > 0 ? ((MENSAL[idx].valor - MENSAL[idx - 1].valor) / MENSAL[idx - 1].valor) * 100 : 0;
+    return { total, vend, porFilial, deltaPct, pctMeta: (total / META_MES) * 100, mesAtual };
+  }, [competencia]);
+}
+
+/* ===== UI ===== */
+function Delta({ value, suffix = "%", invert = false }) {
+  const isFlat = Math.abs(value) < 0.05;
+  const positive = invert ? value < 0 : value > 0;
+  const color = isFlat ? C.textDim : positive ? C.neon : C.alerta;
+  const iconName = isFlat ? "Minus" : positive ? "ArrowUpRight" : "ArrowDownRight";
+  const sign = value > 0 ? "+" : "";
+  return (
+    <span className="inline-flex items-center gap-1 text-sm font-semibold" style={{ color }}>
+      <Icon name={iconName} size={14} strokeWidth={2.5} />
+      {sign}{value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}{suffix}
+      <span className="font-normal" style={{ color: C.textFaint }}>vs mês ant.</span>
+    </span>
+  );
+}
+function KpiCard({ label, value, delta, deltaSuffix, invert, icon, tone = "normal" }) {
+  const accent = tone === "risco" ? C.alerta : tone === "hero" ? C.laranja : C.textDim;
+  return (
+    <div className="rounded-2xl p-5 flex flex-col justify-between" style={{ background: C.surface, border: `1px solid ${C.border}`, minHeight: 128 }}>
+      <div className="flex items-center justify-between">
+        <span className="text-sm" style={{ color: C.textDim }}>{label}</span>
+        <span className="rounded-lg p-1.5" style={{ background: "rgba(255,247,237,0.05)" }}>
+          <Icon name={icon} size={16} color={accent} />
+        </span>
+      </div>
+      <div>
+        <div className="font-sora font-bold tracking-tight" style={{ color: C.text, fontSize: 28, lineHeight: 1.1 }}>{value}</div>
+        {delta !== undefined && <div className="mt-1"><Delta value={delta} suffix={deltaSuffix} invert={invert} /></div>}
+      </div>
+    </div>
+  );
+}
+function ChartCard({ title, subtitle, right, children, className = "" }) {
+  return (
+    <div className={`rounded-2xl p-5 ${className}`} style={{ background: C.surface, border: `1px solid ${C.border}` }}>
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h3 className="font-sora font-semibold" style={{ color: C.text, fontSize: 16 }}>{title}</h3>
+          {subtitle && <p className="text-sm mt-0.5" style={{ color: C.textDim }}>{subtitle}</p>}
+        </div>
+        {right}
+      </div>
+      {children}
+    </div>
+  );
+}
+function ChartTooltip({ active, payload, label, money = true }) {
+  if (!active || !payload || !payload.length) return null;
+  return (
+    <div className="rounded-xl px-3 py-2 text-sm" style={{ background: "#0A180E", border: `1px solid ${C.borderStrong}` }}>
+      {label && <div className="font-semibold mb-1" style={{ color: C.text }}>{label}</div>}
+      {payload.map((p, i) => (
+        <div key={i} className="flex items-center gap-2" style={{ color: C.textDim }}>
+          <span className="inline-block rounded-full" style={{ width: 8, height: 8, background: p.color || p.fill }} />
+          <span>{p.name}:</span>
+          <span className="font-semibold" style={{ color: C.text }}>{money ? fmtBRL(p.value) : p.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const NAV = [
+  { id: "geral", label: "Visão Geral", icon: "LayoutDashboard" },
+  { id: "comercial", label: "Comercial", icon: "TrendingUp" },
+  { id: "trafego", label: "Tráfego", icon: "Megaphone" },
+  { id: "custos", label: "Custos & Frota", icon: "Truck" },
+  { id: "leads", label: "Leads (IA)", icon: "MessageSquare" },
+];
+function Sidebar({ active, setActive }) {
+  return (
+    <aside className="hidden md:flex flex-col w-64 shrink-0 p-5" style={{ background: "#0A180E", borderRight: `1px solid ${C.border}` }}>
+      <div className="flex items-center gap-3 mb-8 px-1">
+        <div className="rounded-xl flex items-center justify-center font-sora font-bold" style={{ width: 40, height: 40, background: C.laranja, color: "#0A180E", fontSize: 16 }}>{TENANT.sigla}</div>
+        <div>
+          <div className="font-sora font-semibold leading-tight" style={{ color: C.text, fontSize: 14 }}>{TENANT.nome}</div>
+          <div className="text-xs" style={{ color: C.textFaint }}>Painel gerencial</div>
+        </div>
+      </div>
+      <nav className="flex flex-col gap-1">
+        {NAV.map((item) => {
+          const on = active === item.id;
+          return (
+            <button key={item.id} onClick={() => setActive(item.id)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors"
+              style={{ background: on ? C.surfaceAlt : "transparent", color: on ? C.text : C.textDim, borderLeft: `2px solid ${on ? C.laranja : "transparent"}` }}>
+              <Icon name={item.icon} size={18} color={on ? C.laranja : C.textDim} />
+              <span className="text-sm font-medium">{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+      <div className="mt-auto pt-6">
+        <div className="rounded-xl p-3 flex items-center gap-2" style={{ background: C.surface, border: `1px solid ${C.border}` }}>
+          <Icon name="Sparkles" size={15} color={C.neon} />
+          <div className="text-xs leading-tight" style={{ color: C.textDim }}>Movido por <span className="font-semibold" style={{ color: C.text }}>{TENANT.poweredBy}</span></div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+function MobileNav({ active, setActive }) {
+  return (
+    <div className="md:hidden flex gap-2 overflow-x-auto px-4 py-3" style={{ background: "#0A180E", borderBottom: `1px solid ${C.border}` }}>
+      {NAV.map((item) => {
+        const on = active === item.id;
+        return (
+          <button key={item.id} onClick={() => setActive(item.id)} className="flex items-center gap-2 rounded-lg px-3 py-1.5 shrink-0 text-sm"
+            style={{ background: on ? C.laranja : C.surface, color: on ? "#0A180E" : C.textDim, fontWeight: on ? 600 : 500 }}>
+            <Icon name={item.icon} size={15} /> {item.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+function Topbar({ title, subtitle, competencia, setCompetencia }) {
+  const [open, setOpen] = useState(false);
+  const opcoes = Object.keys(TOTAL_COMPETENCIA);
+  return (
+    <div className="flex items-start justify-between gap-4 flex-wrap mb-6">
+      <div>
+        <h1 className="font-sora font-bold tracking-tight" style={{ color: C.text, fontSize: 26 }}>{title}</h1>
+        <p className="text-sm mt-1" style={{ color: C.textDim }}>{subtitle}</p>
+      </div>
+      <div className="relative">
+        <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium"
+          style={{ background: C.surface, border: `1px solid ${C.borderStrong}`, color: C.text }}>
+          <span style={{ color: C.textDim }}>Competência</span>{competencia}
+          <Icon name="ChevronDown" size={16} color={C.textDim} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+        </button>
+        {open && (
+          <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-20 w-52" style={{ background: "#0A180E", border: `1px solid ${C.borderStrong}` }}>
+            {opcoes.map((o) => (
+              <button key={o} onClick={() => { setCompetencia(o); setOpen(false); }} className="block w-full text-left px-4 py-2.5 text-sm"
+                style={{ background: o === competencia ? C.surfaceAlt : "transparent", color: o === competencia ? C.text : C.textDim }}>{o}</button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function VisaoGeral({ competencia }) {
+  const d = useCompetencia(competencia);
+  const k = KPIS[competencia];
+  const heroNum = useCountUp(d.total, [competencia]);
+  const mesIdx = MENSAL.findIndex((m) => m.mes === d.mesAtual);
+  const trilha = MENSAL.slice(0, mesIdx + 1);
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="rounded-2xl p-6 md:p-7 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${C.surface} 0%, #10241A 60%, #12281C 100%)`, border: `1px solid ${C.border}` }}>
+        <div className="absolute right-0 top-0 rounded-full" style={{ width: 220, height: 220, background: C.laranja, filter: "blur(90px)", opacity: 0.14, transform: "translate(40%,-40%)" }} />
+        <div className="relative flex flex-col md:flex-row md:items-end md:justify-between gap-5">
+          <div>
+            <div className="text-sm mb-1" style={{ color: C.textDim }}>Faturamento em {competencia}</div>
+            <div className="font-sora font-extrabold tracking-tight" style={{ color: C.text, fontSize: 52, lineHeight: 1 }}>{fmtMi(heroNum)}</div>
+            <div className="mt-3 flex items-center gap-3 flex-wrap">
+              <Delta value={d.deltaPct} />
+              <span className="text-sm" style={{ color: C.textFaint }}>·</span>
+              <span className="text-sm" style={{ color: C.textDim }}>Meta {fmtMi(META_MES)} · <span style={{ color: d.pctMeta >= 100 ? C.neon : C.ambar, fontWeight: 600 }}>{pct(d.pctMeta)} atingido</span></span>
+            </div>
+            <div className="mt-3 rounded-full overflow-hidden" style={{ height: 8, width: 280, maxWidth: "100%", background: "rgba(255,247,237,0.08)" }}>
+              <div className="h-full rounded-full" style={{ width: `${Math.min(100, d.pctMeta)}%`, background: `linear-gradient(90deg, ${C.laranja}, ${C.neon})` }} />
+            </div>
+          </div>
+          <div style={{ width: 260, height: 90 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trilha} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
+                <defs><linearGradient id="heroFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.neon} stopOpacity={0.35} /><stop offset="100%" stopColor={C.neon} stopOpacity={0} /></linearGradient></defs>
+                <Area type="monotone" dataKey="valor" stroke={C.neon} strokeWidth={2} fill="url(#heroFill)" />
+                <Tooltip content={<ChartTooltip />} cursor={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+            <div className="text-xs text-center" style={{ color: C.textFaint }}>evolução até a competência</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard label="Ticket médio" value={fmtBRL(k.ticket)} delta={k.ticketD} icon="Receipt" />
+        <KpiCard label="Clientes ativos" value={k.ativos.toLocaleString("pt-BR")} delta={k.ativosD} deltaSuffix="" icon="Users" />
+        <KpiCard label="Leads captados" value={k.leads.toLocaleString("pt-BR")} delta={k.leadsD} icon="MessageSquare" />
+        <KpiCard label="Conversão de leads" value={pct(k.conv)} delta={k.convD} deltaSuffix=" pp" icon="Target" />
+        <KpiCard label="Custo por lead" value={fmtBRL(k.cpl)} delta={k.cplD} invert icon="Megaphone" />
+        <KpiCard label="Novos clientes" value={k.novos.toLocaleString("pt-BR")} icon="UserPlus" />
+        <KpiCard label="Reativados (carteira)" value={k.reativados.toLocaleString("pt-BR")} icon="RefreshCw" />
+        <KpiCard label="Inativos +180d" value={k.inativos.toLocaleString("pt-BR")} delta={k.inativosD} deltaSuffix="" invert tone="risco" icon="UserMinus" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ChartCard title="Evolução do faturamento" subtitle="Últimos 8 meses vs meta" className="lg:col-span-2">
+          <div style={{ height: 260 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={MENSAL} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                <defs><linearGradient id="fatFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.laranja} stopOpacity={0.3} /><stop offset="100%" stopColor={C.laranja} stopOpacity={0} /></linearGradient></defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,247,237,0.06)" vertical={false} />
+                <XAxis dataKey="mes" tick={{ fill: C.textDim, fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={axisMoney} tick={{ fill: C.textDim, fontSize: 12 }} axisLine={false} tickLine={false} width={56} />
+                <ReferenceLine y={META_MES} stroke={C.textFaint} strokeDasharray="4 4" label={{ value: "meta", fill: C.textFaint, fontSize: 11, position: "insideTopRight" }} />
+                <Tooltip content={<ChartTooltip />} cursor={{ stroke: C.borderStrong }} />
+                <Area type="monotone" dataKey="valor" name="Faturamento" stroke={C.laranja} strokeWidth={2.5} fill="url(#fatFill)" dot={{ r: 3, fill: C.laranja }} activeDot={{ r: 5 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+        <ChartCard title="Faturamento por filial" subtitle={competencia}>
+          <div style={{ height: 200 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={d.porFilial} dataKey="value" nameKey="name" innerRadius={52} outerRadius={80} paddingAngle={2} stroke="none">
+                  {d.porFilial.map((_, i) => <Cell key={i} fill={SERIE[i % SERIE.length]} />)}
+                </Pie>
+                <Tooltip content={<ChartTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex flex-col gap-2 mt-2">
+            {d.porFilial.map((f, i) => (
+              <div key={f.name} className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2" style={{ color: C.textDim }}><span className="inline-block rounded-full" style={{ width: 9, height: 9, background: SERIE[i % SERIE.length] }} />{f.name}</span>
+                <span className="font-semibold" style={{ color: C.text }}>{fmtMil(f.value)}</span>
+              </div>
+            ))}
+          </div>
+        </ChartCard>
+      </div>
+    </div>
+  );
+}
+
+function Comercial({ competencia }) {
+  const d = useCompetencia(competencia);
+  const k = KPIS[competencia];
+  const [filial, setFilial] = useState("Todas");
+  const vendFiltrados = filial === "Todas" ? d.vend : d.vend.filter((v) => v.filial === filial);
+  const fatRecorte = vendFiltrados.reduce((s, v) => s + v.realizado, 0);
+  const barData = [...d.vend].map((v) => ({ nome: v.nome.split(" ")[0], realizado: v.realizado, meta: v.meta })).sort((a, b) => b.realizado - a.realizado);
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard label="Faturamento" value={fmtMi(d.total)} delta={d.deltaPct} tone="hero" icon="Wallet" />
+        <KpiCard label="Ticket médio" value={fmtBRL(k.ticket)} delta={k.ticketD} icon="Receipt" />
+        <KpiCard label="Clientes ativos" value={k.ativos.toLocaleString("pt-BR")} delta={k.ativosD} deltaSuffix="" icon="Users" />
+        <KpiCard label="Inativos +180d" value={k.inativos.toLocaleString("pt-BR")} delta={k.inativosD} deltaSuffix="" invert tone="risco" icon="UserMinus" />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChartCard title="Faturamento mês a mês" subtitle="Comparativo com a meta mensal">
+          <div style={{ height: 280 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={MENSAL} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,247,237,0.06)" vertical={false} />
+                <XAxis dataKey="mes" tick={{ fill: C.textDim, fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={axisMoney} tick={{ fill: C.textDim, fontSize: 12 }} axisLine={false} tickLine={false} width={56} />
+                <ReferenceLine y={META_MES} stroke={C.neon} strokeDasharray="4 4" label={{ value: "meta", fill: C.neon, fontSize: 11, position: "insideTopRight" }} />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(255,247,237,0.04)" }} />
+                <Bar dataKey="valor" name="Faturamento" radius={[6, 6, 0, 0]}>
+                  {MENSAL.map((m, i) => <Cell key={i} fill={m.mes === d.mesAtual ? C.laranja : "rgba(249,115,22,0.35)"} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+        <ChartCard title="Realizado × meta por vendedor" subtitle={competencia}>
+          <div style={{ height: 280 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barData} layout="vertical" margin={{ top: 4, right: 12, left: 4, bottom: 0 }} barCategoryGap={10}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,247,237,0.06)" horizontal={false} />
+                <XAxis type="number" tickFormatter={(v) => (v / 1000) + "k"} tick={{ fill: C.textDim, fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="nome" tick={{ fill: C.textDim, fontSize: 12 }} axisLine={false} tickLine={false} width={72} />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(255,247,237,0.04)" }} />
+                <Bar dataKey="meta" name="Meta" fill="rgba(255,247,237,0.14)" radius={[0, 4, 4, 0]} barSize={9} />
+                <Bar dataKey="realizado" name="Realizado" fill={C.neon} radius={[0, 4, 4, 0]} barSize={9} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+      </div>
+      <ChartCard title="Desempenho da equipe"
+        subtitle={`Atingimento de meta e evolução · ${filial === "Todas" ? "todas as filiais" : filial}${filial !== "Todas" ? ` · ${fmtMil(fatRecorte)} no recorte` : ""}`}
+        right={<div className="flex gap-1.5 flex-wrap">{["Todas", ...FILIAIS].map((f) => (
+          <button key={f} onClick={() => setFilial(f)} className="rounded-lg px-3 py-1.5 text-xs font-medium"
+            style={{ background: filial === f ? C.surfaceAlt : "transparent", color: filial === f ? C.text : C.textDim, border: `1px solid ${filial === f ? C.borderStrong : C.border}` }}>{f}</button>
+        ))}</div>}>
+        <div className="flex flex-col gap-3">
+          {vendFiltrados.map((v) => {
+            const p = (v.realizado / v.meta) * 100;
+            const diff = v.realizado - v.ant;
+            const trend = Math.abs(diff) < 1 ? "flat" : diff > 0 ? "up" : "down";
+            const cor = p >= 100 ? C.neon : p >= 90 ? C.verde : C.ambar;
+            return (
+              <div key={v.nome} className="flex items-center gap-4 rounded-xl px-4 py-3" style={{ background: C.surfaceAlt }}>
+                <div className="w-40 shrink-0">
+                  <div className="font-medium" style={{ color: C.text, fontSize: 14 }}>{v.nome}</div>
+                  <div className="flex items-center gap-1.5 text-xs" style={{ color: C.textFaint }}><Icon name="Building2" size={11} /> {v.filial}</div>
+                </div>
+                <div className="flex-1">
+                  <div className="rounded-full overflow-hidden" style={{ height: 8, background: "rgba(255,247,237,0.08)" }}>
+                    <div className="h-full rounded-full" style={{ width: `${Math.min(100, p)}%`, background: cor }} />
+                  </div>
+                </div>
+                <div className="w-24 text-right shrink-0">
+                  <div className="font-sora font-semibold" style={{ color: C.text, fontSize: 14 }}>{fmtMil(v.realizado)}</div>
+                  <div className="text-xs" style={{ color: cor }}>{pct(p)} da meta</div>
+                </div>
+                <div className="w-16 flex justify-end shrink-0">
+                  {trend === "up" && <span className="inline-flex items-center gap-0.5 text-xs font-semibold" style={{ color: C.neon }}><Icon name="ArrowUpRight" size={13} />{fmtMil(Math.abs(diff)).replace("R$ ", "")}</span>}
+                  {trend === "down" && <span className="inline-flex items-center gap-0.5 text-xs font-semibold" style={{ color: C.alerta }}><Icon name="ArrowDownRight" size={13} />{fmtMil(Math.abs(diff)).replace("R$ ", "")}</span>}
+                  {trend === "flat" && <Icon name="Minus" size={14} color={C.textFaint} />}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-xs mt-4" style={{ color: C.textFaint }}>Barras mostram atingimento da meta · seta indica evolução vs. mês anterior. Foco em performance e evolução, não em ranking.</p>
+      </ChartCard>
+    </div>
+  );
+}
+
+function Leads({ competencia }) {
+  const k = KPIS[competencia];
+  const esc = k.leads / 342;
+  const porVend = LEADS_VENDEDOR.map((v) => ({ ...v, leads: Math.round(v.leads * esc) }));
+  const maxVend = Math.max(...porVend.map((v) => v.leads));
+  const porDDD = LEADS_DDD.map((d) => ({ ...d, value: Math.round(d.value * esc) }));
+  const qualificados = Math.round(k.leads * 0.62);
+  const conectados = Math.round(qualificados * 0.93);
+  const funil = [
+    { etapa: "Leads captados", v: k.leads, cor: C.laranja },
+    { etapa: "Qualificados pela IA", v: qualificados, cor: "#2DD4BF" },
+    { etapa: "Conectados a vendedor", v: conectados, cor: C.verde },
+    { etapa: "Viraram cliente", v: k.novos, cor: C.neon },
+  ];
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard label="Leads captados" value={k.leads.toLocaleString("pt-BR")} delta={k.leadsD} tone="hero" icon="MessageSquare" />
+        <KpiCard label="Conversão em cliente" value={pct(k.conv)} delta={k.convD} deltaSuffix=" pp" icon="Target" />
+        <KpiCard label="Tempo médio de resposta" value={k.tresp + " s"} delta={k.trespD} invert icon="RefreshCw" />
+        <KpiCard label="Novos clientes via lead" value={k.novos.toLocaleString("pt-BR")} icon="UserPlus" />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ChartCard title="Funil de conversão" subtitle={`Da captação ao fechamento · ${competencia}`} className="lg:col-span-2">
+          <div className="flex flex-col gap-3">
+            {funil.map((f) => {
+              const p = (f.v / funil[0].v) * 100;
+              return (
+                <div key={f.etapa}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm" style={{ color: C.textDim }}>{f.etapa}</span>
+                    <span className="text-sm"><span className="font-sora font-semibold" style={{ color: C.text }}>{f.v.toLocaleString("pt-BR")}</span><span className="ml-2" style={{ color: C.textFaint }}>{pct(p)}</span></span>
+                  </div>
+                  <div className="rounded-lg overflow-hidden" style={{ height: 14, background: "rgba(255,247,237,0.06)" }}>
+                    <div className="h-full rounded-lg" style={{ width: `${p}%`, background: f.cor, transition: "width .4s" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-xs mt-4" style={{ color: C.textFaint }}>O agente de IA responde 100% dos leads na hora, 24/7, e faz a triagem antes de conectar ao vendedor.</p>
+        </ChartCard>
+        <ChartCard title="Origem por região" subtitle="Distribuição por DDD">
+          <div style={{ height: 190 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={porDDD} dataKey="value" nameKey="name" innerRadius={50} outerRadius={78} paddingAngle={2} stroke="none">
+                  {porDDD.map((_, i) => <Cell key={i} fill={SERIE[i % SERIE.length]} />)}
+                </Pie>
+                <Tooltip content={<ChartTooltip money={false} />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex flex-col gap-2 mt-2">
+            {porDDD.map((dd, i) => (
+              <div key={dd.name} className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2" style={{ color: C.textDim }}><span className="inline-block rounded-full" style={{ width: 9, height: 9, background: SERIE[i % SERIE.length] }} />{dd.name}</span>
+                <span className="font-semibold" style={{ color: C.text }}>{dd.value}</span>
+              </div>
+            ))}
+          </div>
+        </ChartCard>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChartCard title="Leads distribuídos por vendedor" subtitle="Rodízio automático por DDD">
+          <div className="flex flex-col gap-3">
+            {porVend.map((v) => (
+              <div key={v.nome} className="flex items-center gap-4 rounded-xl px-4 py-3" style={{ background: C.surfaceAlt }}>
+                <div className="w-32 shrink-0">
+                  <div className="font-medium" style={{ color: C.text, fontSize: 14 }}>{v.nome}</div>
+                  <div className="flex items-center gap-1.5 text-xs" style={{ color: C.textFaint }}><Icon name="Building2" size={11} /> {v.filial}</div>
+                </div>
+                <div className="flex-1"><div className="rounded-full overflow-hidden" style={{ height: 8, background: "rgba(255,247,237,0.08)" }}><div className="h-full rounded-full" style={{ width: `${(v.leads / maxVend) * 100}%`, background: C.laranja }} /></div></div>
+                <div className="w-14 text-right shrink-0 font-sora font-semibold" style={{ color: C.text, fontSize: 15 }}>{v.leads}</div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs mt-4" style={{ color: C.textFaint }}>Regra do agente: DDD 43 → rodízio Clayton / Rinaldo / Felipe · DDD 44 → Bruna · outros DDDs → rodízio dos quatro.</p>
+        </ChartCard>
+        <ChartCard title="Evolução de leads captados" subtitle="Últimos 8 meses">
+          <div style={{ height: 260 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={LEADS_MENSAL} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                <defs><linearGradient id="leadFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={C.neon} stopOpacity={0.3} /><stop offset="100%" stopColor={C.neon} stopOpacity={0} /></linearGradient></defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,247,237,0.06)" vertical={false} />
+                <XAxis dataKey="mes" tick={{ fill: C.textDim, fontSize: 12 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: C.textDim, fontSize: 12 }} axisLine={false} tickLine={false} width={36} />
+                <Tooltip content={<ChartTooltip money={false} />} cursor={{ stroke: C.borderStrong }} />
+                <Area type="monotone" dataKey="leads" name="Leads" stroke={C.neon} strokeWidth={2.5} fill="url(#leadFill)" dot={{ r: 3, fill: C.neon }} activeDot={{ r: 5 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </ChartCard>
+      </div>
+    </div>
+  );
+}
+
+function EmBreve({ titulo, fase, descricao, icon }) {
+  return (
+    <div className="rounded-2xl flex flex-col items-center justify-center text-center px-6" style={{ background: C.surface, border: `1px dashed ${C.borderStrong}`, minHeight: 420 }}>
+      <div className="rounded-2xl p-4 mb-4" style={{ background: C.surfaceAlt }}><Icon name={icon} size={28} color={C.laranja} /></div>
+      <h2 className="font-sora font-bold" style={{ color: C.text, fontSize: 22 }}>{titulo}</h2>
+      <div className="mt-2 rounded-full px-3 py-1 text-xs font-semibold" style={{ background: "rgba(249,115,22,0.15)", color: C.laranja }}>{fase}</div>
+      <p className="mt-4 text-sm max-w-md" style={{ color: C.textDim, lineHeight: 1.6 }}>{descricao}</p>
+    </div>
+  );
+}
+
+function App() {
+  const [active, setActive] = useState("geral");
+  const [competencia, setCompetencia] = useState("Setembro 2026");
+  const titulos = {
+    geral: { t: "Visão Geral", s: "Os números que importam, num só lugar" },
+    comercial: { t: "Comercial", s: "Faturamento, metas e desempenho da equipe" },
+    trafego: { t: "Tráfego & Marketing", s: "Google Ads, leads e custo por cotação" },
+    custos: { t: "Custos & Frota", s: "Combustível, consumo e manutenção" },
+    leads: { t: "Leads (Atendimento IA)", s: "Captação e distribuição pelo agente de WhatsApp" },
+  };
+  return (
+    <div className="flex min-h-screen" style={{ background: TENANT.cores.bg }}>
+      <Sidebar active={active} setActive={setActive} />
+      <div className="flex-1 flex flex-col min-w-0">
+        <MobileNav active={active} setActive={setActive} />
+        <main className="flex-1 p-5 md:p-8 max-w-[1240px] w-full mx-auto">
+          <Topbar title={titulos[active].t} subtitle={titulos[active].s} competencia={competencia} setCompetencia={setCompetencia} />
+          {active === "geral" && <VisaoGeral competencia={competencia} />}
+          {active === "comercial" && <Comercial competencia={competencia} />}
+          {active === "trafego" && <EmBreve icon="Megaphone" titulo="Painel de Tráfego & Marketing" fase="Fase 2" descricao="Investimento em Google Ads, cotações geradas, custo por lead e ROI do tráfego. Entra quando a integração Google Ads → n8n estiver alimentando a tabela trafego." />}
+          {active === "custos" && <EmBreve icon="Fuel" titulo="Painel de Custos & Frota" fase="Fase 3" descricao="Combustível por veículo e motorista, consumo km/l vs. esperado, manutenção e alertas de desvio. Alimentado pelo chat de conferência da Halwa que grava na tabela custos." />}
+          {active === "leads" && <Leads competencia={competencia} />}
+          <div className="mt-10 pt-6 flex items-center justify-between text-xs" style={{ borderTop: `1px solid ${C.border}`, color: C.textFaint }}>
+            <span>{TENANT.nome} · protótipo de design (dados fictícios)</span>
+            <span className="flex items-center gap-1.5"><Icon name="Sparkles" size={12} color={C.neon} /> {TENANT.poweredBy}</span>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
